@@ -242,12 +242,12 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     ec.extract(clusterIndices);
 
     // Use 'clusterIndices' to add each obstacle cluster to the 'clusters' vector
-    for (std::vector<pcl::PointIndices>::const_iterator it = clusterIndices.begin(); it != clusterIndices.end(); ++it)
+    for (pcl::PointIndices pointIndices : clusterIndices)
     {
         typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
-        for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit)
+        for (int index : pointIndices.indices)
         {
-            cloudCluster->points.push_back(cloud->points[*pit]);
+            cloudCluster->points.push_back(cloud->points[index]);
         }
         cloudCluster->width = cloudCluster->points.size();
         cloudCluster->height = 1;
