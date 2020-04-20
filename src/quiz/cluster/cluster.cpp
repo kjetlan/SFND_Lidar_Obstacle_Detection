@@ -18,7 +18,7 @@ pcl::visualization::PCLVisualizer::Ptr initScene(Box window, int zoom)
   	viewer->setCameraPosition(0, 0, zoom, 0, 1, 0);
   	viewer->addCoordinateSystem (1.0);
 
-  	viewer->addCube(window.x_min, window.x_max, window.y_min, window.y_max, 0, 0, 1, 1, 1, "window");
+  	viewer->addCube(window.x_min, window.x_max, window.y_min, window.y_max, 0, 0, 0, 0, 0, "window");
   	return viewer;
 }
 
@@ -75,15 +75,46 @@ void render2DTree(Node* node, pcl::visualization::PCLVisualizer::Ptr& viewer, Bo
 
 }
 
+void proximity(std::vector<bool> &isProcessed, int id, const std::vector<std::vector<float>>& points, KdTree* tree, std::vector<int> &cluster, float distanceTol)
+{
+	// Mark point as processed and add point to cluster
+	isProcessed[id] = true;
+	cluster.push_back(id);
+	
+	// Search for nearby points, returns ids of nearby point
+	std::vector<int> nearbyIds = tree->search(points[id], distanceTol);
+    
+	// Iterate through each nearby point
+	for (int nearybyId : nearbyIds)
+	{
+		// If point has not been processed
+		if (!isProcessed[nearybyId])
+		{
+			// Proximity(nearby point, cluster)
+			proximity(isProcessed, nearybyId, points, tree, cluster, distanceTol);
+		}
+	}
+}
+
 std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points, KdTree* tree, float distanceTol)
 {
 
-	// TODO: Fill out this function to return list of indices for each cluster
-
+	// Return list of indices for each cluster
 	std::vector<std::vector<int>> clusters;
+	std::vector<bool> isProcessed(points.size(),false); // all elements false
+
+	for (int id = 0; id < points.size(); id++)
+	{
+		if (!isProcessed[id])
+		{
+			// Create cluster
+			std::vector<int> cluster;
+			proximity(isProcessed, id, points, tree, cluster, distanceTol);
+			clusters.push_back(cluster);
+		}
+	}
  
 	return clusters;
-
 }
 
 int main ()
