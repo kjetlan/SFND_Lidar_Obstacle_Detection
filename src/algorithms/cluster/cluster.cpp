@@ -22,7 +22,7 @@ void proximity(std::vector<bool> &isProcessed, int id, const std::vector<std::ve
 	}
 }
 
-std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points, KdTree* tree, float distanceTol)
+std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points, KdTree* tree, float distanceTol, int minSize, int maxSize)
 {
 
 	// Return list of indices for each cluster
@@ -36,7 +36,10 @@ std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<flo
 			// Create cluster
 			std::vector<int> cluster;
 			proximity(isProcessed, id, points, tree, cluster, distanceTol);
-			clusters.push_back(cluster);
+			if (minSize <= cluster.size() && cluster.size() <= maxSize)
+			{
+				clusters.push_back(cluster);
+			}
 		}
 	}
  

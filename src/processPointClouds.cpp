@@ -215,7 +215,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
         }
                 
         // 'clusterIndices' is a vector containing a list of indices for each detected cluster.
-        std::vector<std::vector<int>> clusterIndices = euclideanCluster(points, tree, clusterTolerance);
+        std::vector<std::vector<int>> clusterIndices = euclideanCluster(points, tree, clusterTolerance, minSize, maxSize);
 
         // Use 'clusterIndices' to add each obstacle cluster to the 'clusters' vector
         for (std::vector<int> pointIndices : clusterIndices)

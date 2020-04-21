@@ -126,7 +126,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
 
     // Clusters obstacles
-    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(segmentCloud.first, 0.5, 5, 800);
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(segmentCloud.first, 0.5, 10, 500);
 
     // Render obstacle clusters
     int clusterId = 0;
