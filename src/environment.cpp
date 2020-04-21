@@ -34,6 +34,11 @@ std::vector<Car> initHighway(bool renderScene, pcl::visualization::PCLVisualizer
     return cars;
 }
 
+Color rgbColor(float r, float g, float b)
+{
+    return Color(r/255., g/255., b/255.);
+}
+
 
 void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 {
@@ -49,7 +54,7 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     Lidar* lidar = new Lidar(cars,0);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = lidar->scan();
     // renderRays(viewer, lidar->position, cloud);
-    // renderPointCloud(viewer, cloud, "Point Cloud");
+    renderPointCloud(viewer, cloud, "Point Cloud");
 
     // Create point processor
     ProcessPointClouds<pcl::PointXYZ>* pointProcessor = new ProcessPointClouds<pcl::PointXYZ>();
@@ -65,13 +70,26 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
     // Render obstacle clusters
     int clusterId = 0;
-    std::vector<Color> colors = {Color(1,0,0), Color(0,1,0), Color(0,0,1)};
+    
+    // Define Color Palette
+    std::vector<Color> colors(5, Color(1,1,1));
+    colors[0] = rgbColor(255,69,58); // Red
+    colors[1] = rgbColor(50,215,75); // Green
+    colors[2] = rgbColor(10,132,255); // Blue
+    colors[3] = rgbColor(255,159,10); // Orange
+    colors[4] = rgbColor(255,214,10); // Yellow
+    
 
     for (pcl::PointCloud<pcl::PointXYZ>::Ptr cluster : cloudClusters)
     {
         std::cout << "cluster size ";
         pointProcessor->numPoints(cluster);
         renderPointCloud(viewer,cluster,"obstacleCloud"+std::to_string(clusterId),colors[clusterId % colors.size()]);
+
+        // Add bounding box to cluster
+        Box box = pointProcessor->BoundingBox(cluster);
+        renderBox(viewer,box,clusterId,colors[clusterId % colors.size()],0.5);
+
         ++clusterId;
     }
 

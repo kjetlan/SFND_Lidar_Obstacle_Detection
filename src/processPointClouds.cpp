@@ -1,109 +1,12 @@
 // PCL lib Functions for processing point clouds 
 
 #include "processPointClouds.h"
-#include <unordered_set>
 
-// template<typename PointT>
-// std::unordered_set<int> Ransac(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol);
-
-template<typename PointT>
-std::unordered_set<int> Ransac(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
-{
-	// Hold indexes of inliners with best fit over all iterations
-	std::unordered_set<int> inliersResult;
-	srand(time(NULL));
-	
-	// TODO: Fill in this function
-
-	// For max iterations 
-
-	// Randomly sample subset and fit line
-
-	// Measure distance between every point and fitted line
-	// If distance is smaller than threshold count it as inlier
-
-	// Return indicies of inliers from fitted line with most inliers
-
-	int numPoints = cloud->points.size();
-
-	// For max iterations 
-	for (int i = 0; i < maxIterations; i++)
-	{
-		// Hold indexes of inliners in current interation
-		std::unordered_set<int> inliers;
-
-		// Randomly sample subset of point cloud
-		// - For line need minimum 2 points
-		// - For plane need minimum 3 points
-
-		while(inliers.size() < 3) {
-			// Note: "rand() % N" gives biased random sampling
-			// FIXME: Replace with "std::uniform_int_distribution" or similar
-			inliers.insert(rand() % numPoints);
-		}
-		
-		// Extract points based on the random indecies
-		float x1, y1, z1, x2, y2, z2, x3, y3, z3;
-
-		auto itr = inliers.cbegin();
-		x1 = cloud->points[*itr].x;
-		y1 = cloud->points[*itr].y;
-		z1 = cloud->points[*itr].z;
-		itr++;
-		x2 = cloud->points[*itr].x;
-		y2 = cloud->points[*itr].y;
-		z2 = cloud->points[*itr].z;
-		itr++;
-		x3 = cloud->points[*itr].x;
-		y3 = cloud->points[*itr].y;
-		z3 = cloud->points[*itr].z;
-
-		// Equation of line: Ax + By + C = 0
-		// See: https://en.wikipedia.org/wiki/Linear_equation#Two-point_form
-		// float A = y1 - y2;
-		// float B = x2 - x1;
-		// float C = x1*y2 - x2*y1;
-
-		// Equation of a plane: Ax + By + Cz + D = 0
-		// Defined by the cross product of two vectors in the plane
-		// v1 = p2 - p1
-		// v2 = p3 - p1
-		// vn = v1 x v2 (Normal Vector)
-		float a = (y2-y1)*(z3-z1) - (z2-z1)*(y3-y1);
-		float b = (z2-z1)*(x3-x1) - (x2-x1)*(z3-z1);
-		float c = (x2-x1)*(y3-y1) - (y2-y1)*(x3-x1);
-		float d = -(a*x1 + b*y1 + c*z1);
-		float denominator = sqrt(a*a + b*b + c*c);
-
-		// Measure distance between every point and fitted plane
-		// If distance is smaller than threshold count it as inlier
-		for (int index = 0; index < numPoints; index++)
-		{
-			// We can skip points that are already inliers, like the points defining the plane
-			if (inliers.count(index) > 0) {
-				continue;
-			}
-
-			PointT point = cloud->points[index];
-			float distance = fabs(a*point.x + b*point.y + c*point.z + d) / denominator;
-			
-			if (distance <= distanceTol)
-			{
-				inliers.insert(index);
-			}
-		}
-
-		if (inliers.size() > inliersResult.size())
-		{
-			inliersResult = inliers;
-		}
-	}
-	
-	return inliersResult;
-
-}
-
-
+// Algorithms
+#include "algorithms/ransac/ransac.h"
+#include "algorithms/ransac/ransac.cpp" // using templates for ransac so also include .cpp to help linker
+#include "algorithms/cluster/cluster.h"
+#include "algorithms/cluster/kdtree.h"
 
 //constructor:
 template<typename PointT>
@@ -225,35 +128,71 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
 
     // Perform euclidean clustering to group detected obstacles
-    // See: http://pointclouds.org/documentation/tutorials/cluster_extraction.php    
-    
-    // Create the KdTree object for the search method of the extraction
-    typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
-    tree->setInputCloud(cloud);
-
-    // 'clusterIndices' is a vector containing one instance of PointIndices for each detected cluster.
-    std::vector<pcl::PointIndices> clusterIndices;
-    pcl::EuclideanClusterExtraction<PointT> ec;
-    ec.setClusterTolerance(clusterTolerance);
-    ec.setMinClusterSize(minSize);
-    ec.setMaxClusterSize(maxSize);
-    ec.setSearchMethod(tree);
-    ec.setInputCloud(cloud);
-    ec.extract(clusterIndices);
-
-    // Use 'clusterIndices' to add each obstacle cluster to the 'clusters' vector
-    for (pcl::PointIndices pointIndices : clusterIndices)
+    bool useBuiltInMethod = false;
+    if (useBuiltInMethod)
     {
-        typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
-        for (int index : pointIndices.indices)
-        {
-            cloudCluster->points.push_back(cloud->points[index]);
-        }
-        cloudCluster->width = cloudCluster->points.size();
-        cloudCluster->height = 1;
-        cloudCluster->is_dense = true;
+        // See: http://pointclouds.org/documentation/tutorials/cluster_extraction.php    
+        
+        // Create the KdTree object for the search method of the extraction
+        typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
+        tree->setInputCloud(cloud);
 
-        clusters.push_back(cloudCluster);
+        // 'clusterIndices' is a vector containing one instance of PointIndices for each detected cluster.
+        std::vector<pcl::PointIndices> clusterIndices;
+        pcl::EuclideanClusterExtraction<PointT> ec;
+        ec.setClusterTolerance(clusterTolerance);
+        ec.setMinClusterSize(minSize);
+        ec.setMaxClusterSize(maxSize);
+        ec.setSearchMethod(tree);
+        ec.setInputCloud(cloud);
+        ec.extract(clusterIndices);
+
+        // Use 'clusterIndices' to add each obstacle cluster to the 'clusters' vector
+        for (pcl::PointIndices pointIndices : clusterIndices)
+        {
+            typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
+            for (int index : pointIndices.indices)
+            {
+                cloudCluster->points.push_back(cloud->points[index]);
+            }
+            cloudCluster->width = cloudCluster->points.size();
+            cloudCluster->height = 1;
+            cloudCluster->is_dense = true;
+
+            clusters.push_back(cloudCluster);
+        }
+    }
+    else
+    {
+        // Create the KdTree object for the search method of the extraction
+        KdTree* tree = new KdTree;
+        std::vector<std::vector<float>> points;
+
+        for (int index = 0; index < cloud->points.size(); index++)
+        {
+            PointT point = cloud->points[index];
+            points.push_back({ point.x, point.y, point.z });
+            
+            tree->insert(points[index], index);
+        }
+                
+        // 'clusterIndices' is a vector containing a list of indices for each detected cluster.
+        std::vector<std::vector<int>> clusterIndices = euclideanCluster(points, tree, clusterTolerance);
+
+        // Use 'clusterIndices' to add each obstacle cluster to the 'clusters' vector
+        for (std::vector<int> pointIndices : clusterIndices)
+        {
+            typename pcl::PointCloud<PointT>::Ptr cloudCluster (new pcl::PointCloud<PointT>);
+            for (int index : pointIndices)
+            {
+                cloudCluster->points.push_back(cloud->points[index]);
+            }
+            cloudCluster->width = cloudCluster->points.size();
+            cloudCluster->height = 1;
+            cloudCluster->is_dense = true;
+
+            clusters.push_back(cloudCluster);
+        }
     }
 
     auto endTime = std::chrono::steady_clock::now();
