@@ -32,13 +32,51 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
 
-    // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    // Do voxel grid point reduction and region based filtering
+    typename pcl::PointCloud<PointT>::Ptr filterCloud(new pcl::PointCloud<PointT>);
+
+    // Voxel grid filtering
+    typename pcl::VoxelGrid<PointT> voxelFilter;
+    voxelFilter.setInputCloud(cloud);
+    voxelFilter.setLeafSize(filterRes, filterRes, filterRes); // e.g. filterRes = 0.01 is 1cm leaf size
+    voxelFilter.filter(*filterCloud);
+
+    // Region based filtering (field-of-view)
+    typename pcl::CropBox<PointT> fovFilter;
+    fovFilter.setInputCloud(filterCloud);
+    fovFilter.setMin(minPoint);
+    fovFilter.setMax(maxPoint);
+    fovFilter.filter(*filterCloud);
+
+    // Filter egoCar from point cloud
+    bool shouldFilterEgoCar = true;
+    if (shouldFilterEgoCar)
+    {
+        // Hold indices of points belonging to egoCar
+        pcl::PointIndices::Ptr egoCar(new pcl::PointIndices());
+
+        // Find indices inside egoCar region
+        typename pcl::CropBox<PointT> carFilter;
+        carFilter.setInputCloud(filterCloud);
+        carFilter.setMax(Eigen::Vector4f(2.8, 1.5, 0, 1));  // Points found based on data
+        carFilter.setMin(Eigen::Vector4f(-2, -1.5, -1, 1)); // Points found based on data
+        carFilter.filter(egoCar->indices);
+
+        // Extract the egoCar from point cloud
+        typename pcl::ExtractIndices<PointT> extract;
+        extract.setInputCloud(filterCloud);
+        extract.setIndices(egoCar);
+        extract.setNegative(true);
+        extract.filter(*filterCloud);
+    }
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
+    std::cerr << "reduced to " << filterCloud->points.size() << " data points" << std::endl;
+
+    return filterCloud;
 
 }
 
