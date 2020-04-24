@@ -105,7 +105,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     // return;
 
     // Define Color Palette
-    std::vector<Color> colors(8, Color(1,1,1));
+    std::vector<Color> colors(7, Color(1,1,1));
     colors[0] = rgbColor(255,69,58); // Red
     colors[1] = rgbColor(50,215,75); // Green
     colors[2] = rgbColor(10,132,255); // Blue
@@ -113,7 +113,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
     colors[4] = rgbColor(255,214,10); // Yellow
     colors[5] = rgbColor(191,90,242); // Purple
     colors[6] = rgbColor(152,152,157); // Gray
-    colors[7] = rgbColor(172,142,104); // Brown
+    Color brown = rgbColor(172,142,104); // Brown
 
     // Experiment with the values and find what works best
     pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.20, Eigen::Vector4f(-10, -5, -3, 1), Eigen::Vector4f(20, 7, 2, 1));
@@ -121,8 +121,8 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointCloud
 
     // Segment point cloud into plane and obstacle
     std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcessorI->SegmentPlane(filterCloud, 100, 0.2);
-    renderPointCloud(viewer, segmentCloud.first, "obstacleCloud", Color(1,1,1));
-    renderPointCloud(viewer, segmentCloud.second, "planeCloud", colors[7]);
+    // renderPointCloud(viewer, segmentCloud.first, "obstacleCloud", Color(1,1,1));
+    renderPointCloud(viewer, segmentCloud.second, "planeCloud", brown);
 
 
     // Clusters obstacles
@@ -184,7 +184,7 @@ int main (int argc, char** argv)
     std::cout << "starting enviroment" << std::endl;
 
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-    CameraAngle setAngle = XY;
+    CameraAngle setAngle = FPS;
     initCamera(setAngle, viewer);
     // simpleHighway(viewer);
     
