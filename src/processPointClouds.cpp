@@ -204,16 +204,25 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     {
         // Create the KdTree object for the search method of the extraction
         KdTree* tree = new KdTree;
-        std::vector<std::vector<float>> points;
 
+        // Pre-allocation
+        std::vector<std::vector<float>> points(cloud->points.size(),{0,0,0});
         for (int index = 0; index < cloud->points.size(); index++)
         {
             PointT point = cloud->points[index];
-            points.push_back({ point.x, point.y, point.z });
-            
-            tree->insert(points[index], index);
+            points[index] = { point.x, point.y, point.z };
+            // tree->insert(points[index], index);
         }
-                
+        // Using 'balancedInd' to create a more balanced KD-Tree
+        // Depth goes from ca. 43 to 29 on test image.
+        std::vector<int> balancedInd = medianSortPoints(points);
+        
+        for (int i = 0; i < cloud->points.size(); i++)
+        {
+            tree->insert(points[balancedInd[i]], balancedInd[i]);
+        }
+        // std::cout << "kdtree depth " << tree->treeDepth << std::endl;
+
         // 'clusterIndices' is a vector containing a list of indices for each detected cluster.
         std::vector<std::vector<int>> clusterIndices = euclideanCluster(points, tree, clusterTolerance, minSize, maxSize);
 

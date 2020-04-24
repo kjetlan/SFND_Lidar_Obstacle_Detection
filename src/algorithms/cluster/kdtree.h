@@ -1,8 +1,13 @@
 #ifndef KDTREE_H_
 #define KDTREE_H_
 
-#include "../../render/render.h"
+// #include "../../render/render.h"
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <numeric>
 
+std::vector<int> medianSortPoints(const std::vector<std::vector<float>> &points);
 
 // Structure to represent node of kd tree
 struct Node
@@ -20,12 +25,13 @@ struct Node
 struct KdTree
 {
 	Node* root;
+	int treeDepth;
 
 	KdTree()
-	: root(NULL)
+	: root(NULL), treeDepth(0)
 	{}
 
-	void insert(std::vector<float> point, int id)
+	void insert(const std::vector<float> &point, int id)
 	{
 		// Insert a new point into the tree
 		// the function should create a new node and place correctly with in the root
@@ -35,11 +41,15 @@ struct KdTree
 		insertHelper(root, 0, point, id);
 	}
 
-	void insertHelper(Node *&node, uint depth, std::vector<float> point, int id)
+	void insertHelper(Node *&node, int depth, const std::vector<float> &point, int id)
 	{
 		if (node == NULL) 
 		{
 			node = (new Node(point, id));
+			if (depth > treeDepth)
+			{
+				treeDepth = depth;
+			}
 		} 
 		else
 		{
@@ -48,7 +58,7 @@ struct KdTree
 			// depth = 0: split on 1st dimension (e.g. x)
 			// depth = 1: split on 2nd dimension (e.g. y)
 			// depth = 2: split on 3rd dimension (e.g. z)
-			uint dim = depth % point.size();
+			int dim = depth % 3; // 3-dimensions
 
 			if (point[dim] < node->point[dim])
 			{
@@ -70,7 +80,7 @@ struct KdTree
 		return ids;
 	}
 	
-	void searchHelper(std::vector<int> &ids, Node *&node, uint depth, std::vector<float> target, float distanceTol)
+	void searchHelper(std::vector<int> &ids, Node *&node, int depth, const std::vector<float> &target, float distanceTol)
 	{
 		// Exit if we're at a leaf node
 		if (node == NULL)
@@ -79,56 +89,36 @@ struct KdTree
 		}
 
 		// Check if current node is within 1-norm (e.g. box) of target
-		bool isInsideBox = false;
-		std::vector<float> deltas(target.size(),0.0);
+		float dx = target[0] - node->point[0];
+		if (dx < distanceTol || dx > -distanceTol){
+			float dy = target[1] - node->point[1];
+			if (dy < distanceTol || dy > -distanceTol){
+				float dz = target[2] - node->point[2];
+				if (dz < distanceTol || dz > -distanceTol){
 
-		for (int i = 0; i < target.size(); i++)
-		{	
-			deltas[i] = abs(node->point[i] - target[i]);
-			
-			if (deltas[i] <= distanceTol)
-			{
-				isInsideBox = true;
-			}
-			else
-			{
-				isInsideBox = false;
-				break;
-			}
-		}
-		
-		if (isInsideBox)
-		{
-			// Check if node is within 2-norm (e.g. circle) of target
-			float dist = 0.0;
-			for (float delta : deltas)
-			{
-				dist += delta*delta;
-			}
-			dist = sqrt(dist);
-
-			if (dist <= distanceTol)
-			{
-				// Node is within 2-norm, so add to ids
-				ids.push_back(node->id);
+					// Check if node is within 2-norm (e.g. circle) of target
+					if (dx*dx + dy*dy + dz*dz <= distanceTol*distanceTol)
+					{
+						// Node is within 2-norm, so add to ids
+						ids.push_back(node->id);
+					}
+				}
 			}
 		}
 
 		// Check if we should search further
-
 		// Calculate dimension to check, at this depth of the KD-Tree
-		uint dim = depth % target.size();
-
-		// Search left side of tree
-		// if targets lowest x/y/z.. value is lower than current nodes x/y/z.. value
-		if (target[dim] - distanceTol < node->point[dim])
+		int dim = depth % 3; // 3-dimensions
+		float ddim = target[dim] - node->point[dim];
+		
+		if (ddim < distanceTol)
 		{
+			// Search left side of tree
 			searchHelper(ids, node->left, depth+1, target, distanceTol);
 		}
-		// Search right side of tree
-		// if targets highest x/y/z.. value is higher than current nodes x/y/z.. value
-		if (target[dim] + distanceTol > node->point[dim])
+		if (ddim > -distanceTol)
 		{
+			// Search right side of tree
 			searchHelper(ids, node->right, depth+1, target, distanceTol);
 		}
 	}
